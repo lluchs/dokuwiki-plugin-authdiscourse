@@ -58,7 +58,7 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
         // User is already logged-in or successfully authenticated now.
         $login = $_SESSION['authdiscourse_login'];
 
-        $USERINFO['name'] = $login['username'];
+        $USERINFO['name'] = $login['name'];
         $USERINFO['mail'] = $login['email'];
         $groups = explode(',', $login['groups']);
         $groups[] = 'user';
@@ -66,8 +66,8 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
         if ($login['moderator'] == 'true') $groups[] = 'moderator';
         $USERINFO['grps'] = $groups;
 
-        $_SERVER['REMOTE_USER']                = $login['external_id'];
-        $_SESSION[DOKU_COOKIE]['auth']['user'] = $login['external_id'];
+        $_SERVER['REMOTE_USER']                = $login['username'];
+        $_SESSION[DOKU_COOKIE]['auth']['user'] = $login['username'];
         $_SESSION[DOKU_COOKIE]['auth']['info'] = $USERINFO;
 
         return true;
