@@ -37,7 +37,7 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
         if (!empty($mac) && hash_equals(hash_hmac('sha256', $prev_nonce, $this->sso_secret), $mac))
             $this->prev_nonce = $prev_nonce;
         $this->nonce = base64_encode(random_bytes(18));
-        setcookie('authdiscourse_nonce', $this->nonce.';'.hash_hmac('sha256', $this->nonce, $this->sso_secret), array('httponly' => true));
+        setcookie('authdiscourse_nonce', $this->nonce.';'.hash_hmac('sha256', $this->nonce, $this->sso_secret), 0, "", "", ($conf['securecookie'] && is_ssl()), true);
     }
 
     public function logOff() {
