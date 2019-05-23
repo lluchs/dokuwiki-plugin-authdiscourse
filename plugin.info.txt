@@ -1,0 +1,7 @@
+base   authdiscourse
+author Lukas Werling
+email  lukas@lwrl.de
+date   2019-05-23
+name   Discourse SSO Auth Plugin
+desc   Provides user authentication against a Discourse instance
+url    https://github.com/lluchs/authdiscourse
