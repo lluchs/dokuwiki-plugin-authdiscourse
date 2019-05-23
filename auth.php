@@ -117,7 +117,7 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
     private function generateLoginURL() {
         $payload =  base64_encode(http_build_query(array(
             'nonce' => $this->nonce,
-            'return_sso_url' => "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
+            'return_sso_url' => "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
         )));
         $request = array(
             'sso' => $payload,
