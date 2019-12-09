@@ -60,7 +60,8 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
             }
 
             // otherwise register and log in a new user
-            $userinfo = $this->createUserinfo($username, $mail);
+            $groups = !empty($ssoResponse['groups']) ? explode(',', $ssoResponse['groups']) : [];
+            $userinfo = $this->createUserinfo($username, $mail, $groups);
             if (!$this->addUser($userinfo)) {
                 msg($this->getLang('error_login'), -1);
                 return false;
@@ -152,15 +153,16 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
      *
      * @param string $username
      * @param string $mail
+     * @param array $groups
      * @return array
      */
-    protected function createUserinfo($username, $mail)
+    protected function createUserinfo($username, $mail, $groups)
     {
         global $conf;
 
         $userinfo['user'] = strtolower($username);
         $userinfo['mail'] = $mail;
-        $userinfo['grps'] = [$conf['defaultgroup']];
+        $userinfo['grps'] = array_merge([$conf['defaultgroup']], $groups);
         $userinfo['name'] = $username;
         return $userinfo;
     }
