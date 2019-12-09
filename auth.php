@@ -50,17 +50,19 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
             $username = $ssoResponse['username'];
             $mail = $ssoResponse['email'];
             $token = $ssoResponse['nonce'];
+            $groups = !empty($ssoResponse['groups']) ? explode(',', $ssoResponse['groups']) : [];
 
             // user with this email exists? try login
             $found = $this->retrieveUsers(0, 1, ['mail' => '^' . str_replace('.', '\.', $mail) . '$']);
             if ($found) {
                 $userinfo = $found[key($found)];
                 $username = key($found);
+                // update user
+                $this->modifyUser($username, $this->createUserinfo($username, $mail, $groups, $userinfo['name']));
                 return $this->tokenLogin($username, $userinfo, $token);
             }
 
             // otherwise register and log in a new user
-            $groups = !empty($ssoResponse['groups']) ? explode(',', $ssoResponse['groups']) : [];
             $userinfo = $this->createUserinfo($username, $mail, $groups);
             if (!$this->addUser($userinfo)) {
                 msg($this->getLang('error_login'), -1);
@@ -154,16 +156,17 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
      * @param string $username
      * @param string $mail
      * @param array $groups
+     * @param string $name
      * @return array
      */
-    protected function createUserinfo($username, $mail, $groups)
+    protected function createUserinfo($username, $mail, $groups, $name = '')
     {
         global $conf;
 
         $userinfo['user'] = strtolower($username);
         $userinfo['mail'] = $mail;
         $userinfo['grps'] = array_merge([$conf['defaultgroup']], $groups);
-        $userinfo['name'] = $username;
+        $userinfo['name'] = $name ?: $username;
         return $userinfo;
     }
 
