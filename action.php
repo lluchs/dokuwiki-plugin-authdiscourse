@@ -20,6 +20,7 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
 
         $controller->register_hook('HTML_LOGINFORM_OUTPUT', 'BEFORE', $this, 'handle_loginform');
         $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, 'handle_dologin');
+        $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, 'handle_dologout');
     }
 
     /**
@@ -79,6 +80,19 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
         $this->setTokenCookie($nonce);
 
         send_redirect($endpoint . '?' . http_build_query($request));
+    }
+
+    /**
+     * Take over logout, otherwise the logoff method will not be called.
+     *
+     * @param Doku_Event $event
+     * @param $param
+     */
+    public function handle_dologout(Doku_Event $event, $param)
+    {
+        if ($event->data === 'logout') {
+            auth_logoff();
+        }
     }
 
     /**
