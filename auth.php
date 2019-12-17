@@ -71,6 +71,19 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
             return $this->tokenLogin($username, $userinfo, $token);
         }
 
+        // token in cookie?
+        if (
+            $INPUT->str('do') !== 'logout' &&
+            !empty($_COOKIE[self::TOKEN_COOKIE]) &&
+            $_SESSION[DOKU_COOKIE]['auth']['user']
+        ) {
+            return $this->tokenLogin(
+                $_SESSION[DOKU_COOKIE]['auth']['user'],
+                $_SESSION[DOKU_COOKIE]['auth']['info'],
+                $_COOKIE[self::TOKEN_COOKIE]
+            );
+        }
+
         return false;
     }
 
