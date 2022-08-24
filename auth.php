@@ -1,6 +1,4 @@
 <?php
-// must be run within Dokuwiki
-if(!defined('DOKU_INC')) die();
 
 /**
  * Discourse authentication backend
@@ -8,12 +6,14 @@ if(!defined('DOKU_INC')) die();
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Lukas Werling <lukas@lwrl.de>
  */
-class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
+class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin
+{
     private $sso_secret, $sso_url;
     private $login_url;
     private $nonce, $prev_nonce;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
 
         $this->success = true;
@@ -34,18 +34,22 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
         // Note: This would probably be better in the session, but I couldn't
         // get that to work.
         list($prev_nonce, $mac) = explode(';', $_COOKIE['authdiscourse_nonce']);
-        if (!empty($mac) && hash_equals(hash_hmac('sha256', $prev_nonce, $this->sso_secret), $mac))
+        if (!empty($mac) && hash_equals(hash_hmac('sha256', $prev_nonce, $this->sso_secret), $mac)) {
             $this->prev_nonce = $prev_nonce;
+        }
         $this->nonce = base64_encode(random_bytes(18));
-        setcookie('authdiscourse_nonce', $this->nonce.';'.hash_hmac('sha256', $this->nonce, $this->sso_secret), 0, "", "", ($conf['securecookie'] && is_ssl()), true);
+        setcookie('authdiscourse_nonce', $this->nonce . ';' . hash_hmac('sha256', $this->nonce, $this->sso_secret), 0,
+            "", "", ($conf['securecookie'] && is_ssl()), true);
     }
 
-    public function logOff() {
+    public function logOff()
+    {
         @session_start();
         session_destroy();
     }
 
-    public function trustExternal($user, $pass, $sticky=false) {
+    public function trustExternal($user, $pass, $sticky = false)
+    {
         global $USERINFO;
         // We don't use the login form, so $user and $pass will never be set.
 
@@ -66,7 +70,7 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
         if ($login['moderator'] == 'true') $groups[] = 'moderator';
         $USERINFO['grps'] = $groups;
 
-        $_SERVER['REMOTE_USER']                = $login['username'];
+        $_SERVER['REMOTE_USER'] = $login['username'];
         $_SESSION[DOKU_COOKIE]['auth']['user'] = $login['username'];
         $_SESSION[DOKU_COOKIE]['auth']['info'] = $USERINFO;
 
@@ -74,9 +78,10 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
     }
 
     // Checks SSO data after redirect from the SSO server.
-    private function checkSSO() {
+    private function checkSSO()
+    {
         // Are we returning from the SSO server?
-        if (!empty($_GET) && isset($_GET['sso'])){
+        if (!empty($_GET) && isset($_GET['sso'])) {
             @session_start();
             $sso = urldecode($_GET['sso']);
             $sig = $_GET['sig'];
@@ -107,15 +112,18 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
     }
 
     // Returns the external SSO login URL.
-    public function getLoginURL() {
-        if (empty($this->login_url))
-            $this->login_url =  $this->generateLoginURL();
+    public function getLoginURL()
+    {
+        if (empty($this->login_url)) {
+            $this->login_url = $this->generateLoginURL();
+        }
         return $this->login_url;
     }
 
     // Generates a URL to the SSO server.
-    private function generateLoginURL() {
-        $payload =  base64_encode(http_build_query(array(
+    private function generateLoginURL()
+    {
+        $payload = base64_encode(http_build_query(array(
             'nonce' => $this->nonce,
             'return_sso_url' => "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
         )));
@@ -123,6 +131,6 @@ class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin {
             'sso' => $payload,
             'sig' => hash_hmac('sha256', $payload, $this->sso_secret),
         );
-        return $this->sso_url.'?'.http_build_query($request);
+        return $this->sso_url . '?' . http_build_query($request);
     }
 }
