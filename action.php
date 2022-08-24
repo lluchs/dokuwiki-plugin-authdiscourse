@@ -18,7 +18,9 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
         global $conf;
         if ($conf['authtype'] !== 'authdiscourse') return;
 
-        $controller->register_hook('HTML_LOGINFORM_OUTPUT', 'BEFORE', $this, 'handle_loginform');
+        $controller->register_hook('HTML_LOGINFORM_OUTPUT', 'BEFORE', $this, 'handle_loginform'); // old
+        $controller->register_hook('FORM_LOGIN_OUTPUT', 'BEFORE', $this, 'handle_loginform'); // new
+
         $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, 'handle_dologin');
         $controller->register_hook('ACTION_ACT_PREPROCESS', 'BEFORE', $this, 'handle_dologout');
     }
@@ -26,26 +28,32 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
     /**
      * Replaces login form with a button
      *
-     * @param Doku_Event $event event object by reference
-     * @param mixed $param [the parameters passed as fifth argument to register_hook() when this
-     *                           handler was registered]
+     * @param Doku_Event $event the form event
+     * @param mixed $param unused
      * @return void
      */
-    public function handle_loginform(Doku_Event &$event, $param)
+    public function handle_loginform(Doku_Event $event, $param)
     {
         global $ID;
+        $html = '<a href="' . wl($ID, ['do' => 'login']) . '">Discourse</a>';
+        $form = $event->data;
 
-        /** @var Doku_Form $form */
-        $form =& $event->data;
-
-        $html = '<a href="' . wl($ID, ['do' => 'login']) . '">';
-        $html .= 'Discourse';
-        $html .= '</a> ';
-
-        $form->_content = [];
-        $form->_content[] = form_openfieldset(['_legend' => $this->getLang('login_with'), 'class' => 'plugin_authdiscourse']);
-        $form->_content[] = $html;
-        $form->_content[] = form_closefieldset();
+        if (is_a(\dokuwiki\Form\Form::class, $form)) {
+            // New: completely replace the form object
+            $form = new \dokuwiki\Form\Form();
+            $form->addFieldsetOpen($this->getLang('login_with'))->addClass('plugin_authdiscourse');
+            $form->addHTML($html);
+            $form->addFieldsetClose();
+        } else {
+            // Old: replace form content
+            $form->_content = [];
+            $form->_content[] = form_openfieldset([
+                '_legend' => $this->getLang('login_with'),
+                'class' => 'plugin_authdiscourse',
+            ]);
+            $form->_content[] = $html;
+            $form->_content[] = form_closefieldset();
+        }
     }
 
     /**
