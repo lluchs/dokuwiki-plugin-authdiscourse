@@ -1,136 +1,221 @@
 <?php
-
 /**
- * Discourse authentication backend
+ * DokuWiki Plugin authdiscourse (Auth Component)
  *
- * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
- * @author     Lukas Werling <lukas@lwrl.de>
+ * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
+ * @author  Anna Dabrowska <dokuwiki@cosmocode.de>
  */
-class auth_plugin_authdiscourse extends DokuWiki_Auth_Plugin
-{
-    private $sso_secret, $sso_url;
-    private $login_url;
-    private $nonce, $prev_nonce;
 
+class auth_plugin_authdiscourse extends auth_plugin_authplain
+{
+
+    const TOKEN_COOKIE = 'DWDisc';
+    const REQUIRED_USERINFO = ['nonce', 'username', 'email'];
+
+    /**
+     * Constructor.
+     */
     public function __construct()
     {
         parent::__construct();
-
-        $this->success = true;
         $this->cando['external'] = true;
-        $this->cando['logoff'] = true;
-
-        global $conf;
-        $cfg = $conf['plugin']['authdiscourse'];
-        if (empty($cfg['sso_secret']) || empty($cfg['sso_url'])) {
-            $this->success = false;
-        } else {
-            $this->sso_secret = $cfg['sso_secret'];
-            $this->sso_url = $cfg['sso_url'];
-        }
-        // We need to set this cookie early, as the login URL will only be
-        // requested during rendering. This also ensures that the nonce stays
-        // valid for only exactly one request.
-        // Note: This would probably be better in the session, but I couldn't
-        // get that to work.
-        list($prev_nonce, $mac) = explode(';', $_COOKIE['authdiscourse_nonce']);
-        if (!empty($mac) && hash_equals(hash_hmac('sha256', $prev_nonce, $this->sso_secret), $mac)) {
-            $this->prev_nonce = $prev_nonce;
-        }
-        $this->nonce = base64_encode(random_bytes(18));
-        setcookie('authdiscourse_nonce', $this->nonce . ';' . hash_hmac('sha256', $this->nonce, $this->sso_secret), 0,
-            "", "", ($conf['securecookie'] && is_ssl()), true);
     }
 
-    public function logOff()
-    {
-        @session_start();
-        session_destroy();
-    }
-
+    /**
+     * Enables login with SSO tokens
+     *
+     * @param string $user
+     * @param string $pass
+     * @param bool $sticky
+     * @return bool
+     */
     public function trustExternal($user, $pass, $sticky = false)
     {
-        global $USERINFO;
-        // We don't use the login form, so $user and $pass will never be set.
+        global $INPUT, $ID;
 
-        if (empty($_SESSION['authdiscourse_login'])) {
-            if (!$this->checkSSO()) {
+        $sig = $INPUT->str('sig');
+        $sso = $INPUT->str('sso');
+
+        // token in query string?
+        if ($sig && $sso && $this->validateToken($sig, $sso)) {
+            // get user info from response
+            $ssoResponse = [];
+            parse_str(base64_decode($sso), $ssoResponse);
+
+            if (!$this->validateResponse($ssoResponse)) {
+                msg($this->getLang('error_login'), -1);
                 return false;
             }
+
+            $username = $ssoResponse['username'];
+            $mail = $ssoResponse['email'];
+            $token = $ssoResponse['nonce'];
+            $groups = !empty($ssoResponse['groups']) ? explode(',', $ssoResponse['groups']) : [];
+
+            // user with this email exists? try login
+            $found = $this->retrieveUsers(0, 1, ['mail' => '^' . str_replace('.', '\.', $mail) . '$']);
+            if ($found) {
+                $userinfo = $found[key($found)];
+                $username = key($found);
+                // update user
+                $this->modifyUser($username, $this->createUserinfo($username, $mail, $groups, $userinfo['name']));
+                return $this->tokenLogin($username, $userinfo, $token);
+            }
+
+            // otherwise register and log in a new user
+            $userinfo = $this->createUserinfo($username, $mail, $groups);
+            if (!$this->addUser($userinfo)) {
+                msg($this->getLang('error_login'), -1);
+                return false;
+            }
+            return $this->tokenLogin($username, $userinfo, $token);
         }
 
-        // User is already logged-in or successfully authenticated now.
-        $login = $_SESSION['authdiscourse_login'];
+        // token in cookie?
+        if (
+            $INPUT->str('do') !== 'logout' &&
+            !empty($_COOKIE[self::TOKEN_COOKIE]) &&
+            $_SESSION[DOKU_COOKIE]['auth']['user']
+        ) {
+            return $this->tokenLogin(
+                $_SESSION[DOKU_COOKIE]['auth']['user'],
+                $_SESSION[DOKU_COOKIE]['auth']['info'],
+                $_COOKIE[self::TOKEN_COOKIE]
+            );
+        }
 
-        $USERINFO['name'] = $login['name'];
-        $USERINFO['mail'] = $login['email'];
-        $groups = explode(',', $login['groups']);
-        $groups[] = 'user';
-        if ($login['admin'] == 'true') $groups[] = 'admin';
-        if ($login['moderator'] == 'true') $groups[] = 'moderator';
-        $USERINFO['grps'] = $groups;
+        return false;
+    }
 
-        $_SERVER['REMOTE_USER'] = $login['username'];
-        $_SESSION[DOKU_COOKIE]['auth']['user'] = $login['username'];
-        $_SESSION[DOKU_COOKIE]['auth']['info'] = $USERINFO;
+    /**
+     * Delete token cookie after logout
+     */
+    public function logOff()
+    {
+        parent::logOff();
+
+        global $conf;
+        $cookieDir = empty($conf['cookiedir']) ? DOKU_REL : $conf['cookiedir'];
+        setcookie(
+            self::TOKEN_COOKIE,
+            '',
+            time() - 3600 * 24,
+            $cookieDir,
+            '',
+            ($conf['securecookie'] && is_ssl()),
+            true
+        );
+    }
+
+    /**
+     * Overwrite authplain cleaning
+     *
+     * @param string $user
+     * @return string
+     */
+    public function cleanUser($user)
+    {
+        return strtolower($user);
+    }
+
+    /**
+     * Creates auth cookie, auth session and token cookie
+     *
+     * @param string $username
+     * @param array $userinfo
+     * @param $token
+     * @return bool
+     */
+    protected function tokenLogin($username, $userinfo, $token)
+    {
+        global $USERINFO;
+
+        $USERINFO['name'] = $username;
+        $USERINFO['mail'] = $userinfo['mail'];
+        $USERINFO['grps'] = $userinfo['grps'];
+
+        $_SERVER['REMOTE_USER'] = $username;
+
+        $secret = auth_cookiesalt(false, true);
+        auth_setCookie($username, auth_encrypt($token, $secret), false);
 
         return true;
     }
 
-    // Checks SSO data after redirect from the SSO server.
-    private function checkSSO()
+    /**
+     * Creates a new user
+     *
+     * @param array $userinfo
+     * @return bool|int|null
+     */
+    protected function addUser($userinfo)
     {
-        // Are we returning from the SSO server?
-        if (!empty($_GET) && isset($_GET['sso'])) {
-            @session_start();
-            $sso = urldecode($_GET['sso']);
-            $sig = $_GET['sig'];
+        $pwd = auth_pwgen($userinfo['user']);
 
-            // validate sso
-            $new_sig = hash_hmac('sha256', $sso, $this->sso_secret);
-            if (!hash_equals(hash_hmac('sha256', $sso, $this->sso_secret), $sig)) {
-                msg($this->getLang('sso_failed'), -1);
-                return false;
-            }
-
-            $query = array();
-            parse_str(base64_decode($sso), $query);
-
-            // verify nonce with generated nonce
-            if ($query['nonce'] !== $this->prev_nonce) {
-                msg($this->getLang('sso_failed'), -1);
-                return false;
-            }
-
-            msg($this->getLang('sso_success'), 1);
-
-            // login user
-            $_SESSION['authdiscourse_login'] = $query;
-            return true;
-        }
-        return false;
+        return $this->triggerUserMod(
+                'create',
+                [
+                    $userinfo['user'],
+                    $pwd,
+                    $userinfo['name'],
+                    $userinfo['mail'],
+                    $userinfo['grps']
+                ]);
     }
 
-    // Returns the external SSO login URL.
-    public function getLoginURL()
+    /**
+     * Returns user info array
+     *
+     * @param string $username
+     * @param string $mail
+     * @param array $groups
+     * @param string $name
+     * @return array
+     */
+    protected function createUserinfo($username, $mail, $groups, $name = '')
     {
-        if (empty($this->login_url)) {
-            $this->login_url = $this->generateLoginURL();
-        }
-        return $this->login_url;
+        global $conf;
+
+        $userinfo['user'] = strtolower($username);
+        $userinfo['mail'] = $mail;
+        $userinfo['grps'] = array_merge([$conf['defaultgroup']], $groups);
+        $userinfo['name'] = $name ?: $username;
+        return $userinfo;
     }
 
-    // Generates a URL to the SSO server.
-    private function generateLoginURL()
+    /**
+     * Validate SSO token/nonce and signature
+     *
+     * @param string $sig
+     * @param string $sso
+     * @return bool
+     */
+    protected function validateToken($sig, $sso)
     {
-        $payload = base64_encode(http_build_query(array(
-            'nonce' => $this->nonce,
-            'return_sso_url' => "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
-        )));
-        $request = array(
-            'sso' => $payload,
-            'sig' => hash_hmac('sha256', $payload, $this->sso_secret),
-        );
-        return $this->sso_url . '?' . http_build_query($request);
+        if (!isset($_COOKIE[self::TOKEN_COOKIE])) {
+            return false;
+        }
+
+        $sso = urldecode($sso);
+        $query = [];
+        parse_str(base64_decode($sso), $query);
+
+        $comp = hash_hmac('sha256', $sso, $this->getConf('secret'));
+
+        return $comp === $sig && $query['nonce'] === $_COOKIE[self::TOKEN_COOKIE];
+    }
+
+    /**
+     * Checks if the provider's response contains all required data
+     *
+     * @param array $response
+     * @return bool
+     */
+    protected function validateResponse($response)
+    {
+        foreach (self::REQUIRED_USERINFO as $key) {
+            if (empty($response[$key])) return false;
+        }
+        return true;
     }
 }

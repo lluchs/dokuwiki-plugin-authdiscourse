@@ -1,9 +1,9 @@
 <?php
 /**
- * English language file for authdiscourse plugin
+ * German language file for authdiscourse plugin
  *
  * @author Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-$lang['url'] = 'Discourse URL';
+$lang['url'] = 'URL des Discourse Servers';
 $lang['secret'] = 'SSO provider secret';

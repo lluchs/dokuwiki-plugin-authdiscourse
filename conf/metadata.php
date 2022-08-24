@@ -1,4 +1,9 @@
 <?php
+/**
+ * Options for the authdiscourse plugin
+ *
+ * @author Anna Dabrowska <dokuwiki@cosmocode.de>
+ */
 
-$meta['sso_url'] = array('string');
-$meta['sso_secret'] = array('string');
+$meta['endpoint'] = ['string'];
+$meta['secret'] = ['string'];

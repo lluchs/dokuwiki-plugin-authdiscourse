@@ -1,4 +1,10 @@
 <?php
+/**
+ * German language file for authdiscourse plugin
+ *
+ * @author Anna Dabrowska <dokuwiki@cosmocode.de>
+ */
 
-$lang['sso_failed'] = 'Ungültige SSO-Authentifizierungsdaten. Bitte versuchen Sie es erneut.';
-$lang['sso_success'] = 'Erfolgreich angemeldet';
+// custom language strings for the plugin
+$lang['login_with']                 = 'Einloggen mit';
+$lang['error_login']                = 'Fehler beim Einloggen! Versuchen Sie es später noch mal, oder wenden Sie sich an den Administrator.';
