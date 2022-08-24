@@ -5,5 +5,5 @@
  * @author Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-$conf['endpoint']       = '';
-$conf['secret']         = '';
+$conf['sso_url']       = '';
+$conf['sso_secret']         = '';

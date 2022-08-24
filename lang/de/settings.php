@@ -5,5 +5,5 @@
  * @author Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-$lang['url'] = 'URL des Discourse Servers';
-$lang['secret'] = 'SSO provider secret';
+$lang['sso_url'] = 'URL des Discourse Servers';
+$lang['sso_secret'] = 'SSO provider secret';

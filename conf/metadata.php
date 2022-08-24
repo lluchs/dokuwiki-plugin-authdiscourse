@@ -5,5 +5,5 @@
  * @author Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-$meta['endpoint'] = ['string'];
-$meta['secret'] = ['string'];
+$meta['sso_url'] = ['string'];
+$meta['sso_secret'] = ['string'];

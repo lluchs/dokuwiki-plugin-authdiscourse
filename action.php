@@ -68,11 +68,11 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
             return;
         }
 
-        global $conf;
+        global $auth;
 
-        $endpoint = rtrim($this->getConf('endpoint'), '/') . '/session/sso_provider';
-        $secret = $this->getConf('secret');
-        $nonce = md5($secret . time());
+        $endpoint = rtrim($this->getConf('sso_url'), '/') . '/session/sso_provider';
+        $secret = $auth->getConf('sso_secret');
+        $nonce = md5(random_bytes(18));
 
         $payload = base64_encode(http_build_query(
             [
@@ -82,7 +82,7 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
         ));
         $request = [
             'sso' => $payload,
-            'sig' => hash_hmac('sha256', $payload, $secret)
+            'sig' => hash_hmac('sha256', $payload, $secret),
         ];
 
         $this->setTokenCookie($nonce);

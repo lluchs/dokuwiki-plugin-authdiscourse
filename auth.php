@@ -31,7 +31,7 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
      */
     public function trustExternal($user, $pass, $sticky = false)
     {
-        global $INPUT, $ID;
+        global $INPUT;
 
         $sig = $INPUT->str('sig');
         $sso = $INPUT->str('sso');
@@ -153,14 +153,15 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
         $pwd = auth_pwgen($userinfo['user']);
 
         return $this->triggerUserMod(
-                'create',
-                [
-                    $userinfo['user'],
-                    $pwd,
-                    $userinfo['name'],
-                    $userinfo['mail'],
-                    $userinfo['grps']
-                ]);
+            'create',
+            [
+                $userinfo['user'],
+                $pwd,
+                $userinfo['name'],
+                $userinfo['mail'],
+                $userinfo['grps'],
+            ]
+        );
     }
 
     /**
@@ -200,7 +201,7 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
         $query = [];
         parse_str(base64_decode($sso), $query);
 
-        $comp = hash_hmac('sha256', $sso, $this->getConf('secret'));
+        $comp = hash_hmac('sha256', $sso, $this->getConf('sso_secret'));
 
         return $comp === $sig && $query['nonce'] === $_COOKIE[self::TOKEN_COOKIE];
     }

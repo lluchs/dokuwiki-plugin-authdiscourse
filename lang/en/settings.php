@@ -5,5 +5,5 @@
  * @author Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
-$lang['url'] = 'Discourse URL';
-$lang['secret'] = 'SSO provider secret';
+$lang['sso_url'] = 'URL to the Discourse SSO endpoint';
+$lang['sso_secret'] = 'Shared secret with the authentication server';
