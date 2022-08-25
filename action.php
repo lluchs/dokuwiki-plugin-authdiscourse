@@ -35,12 +35,16 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
     public function handle_loginform(Doku_Event $event, $param)
     {
         global $ID;
-        $html = '<a href="' . wl($ID, ['do' => 'login']) . '">Discourse</a>';
+        $html = '<a href="' . wl($ID, ['do' => 'login']) . '" title="Discourse">';
+        $html .= inlineSVG(__DIR__ . '/images/discourse.svg', 6000);
+        $html .= '</a>';
         $form = $event->data;
 
-        if (is_a(\dokuwiki\Form\Form::class, $form)) {
-            // New: completely replace the form object
-            $form = new \dokuwiki\Form\Form();
+        if (is_a($form, \dokuwiki\Form\Form::class)) {
+            // New: clear the form
+            for ($i = $form->elementCount(); $i > 0; $i--) {
+                $form->removeElement($i - 1);
+            }
             $form->addFieldsetOpen($this->getLang('login_with'))->addClass('plugin_authdiscourse');
             $form->addHTML($html);
             $form->addFieldsetClose();
