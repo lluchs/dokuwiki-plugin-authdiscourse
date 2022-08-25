@@ -86,7 +86,7 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
             'sig' => hash_hmac('sha256', $payload, $secret),
         ];
 
-        $this->setTokenCookie($nonce);
+        $auth->setTokenCookie($nonce);
 
         $url = $endpoint . '?' . http_build_query($request, '', '&');
 
@@ -104,25 +104,5 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
         if ($event->data === 'logout') {
             auth_logoff();
         }
-    }
-
-    /**
-     * Saves nonce/token in cookie for comparison with response from SSO provider
-     *
-     * @param string $token
-     */
-    protected function setTokenCookie($token)
-    {
-        global $conf;
-        $cookieDir = empty($conf['cookiedir']) ? DOKU_REL : $conf['cookiedir'];
-        setcookie(
-            \auth_plugin_authdiscourse::TOKEN_COOKIE,
-            $token,
-            0,
-            $cookieDir,
-            '',
-            ($conf['securecookie'] && is_ssl()),
-            true
-        );
     }
 }
