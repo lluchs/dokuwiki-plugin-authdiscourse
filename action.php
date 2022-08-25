@@ -70,15 +70,16 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
 
         global $auth;
 
-        $endpoint = rtrim($this->getConf('sso_url'), '/') . '/session/sso_provider';
-        $secret = $auth->getConf('sso_secret');
+        $endpoint = rtrim($this->getConf('sso_url'), '/');
+        if (!preg_match('!/session/sso_provider$!', $endpoint)) $endpoint .= '/session/sso_provider';
+        $secret = $this->getConf('sso_secret');
         $nonce = md5(random_bytes(18));
 
         $payload = base64_encode(http_build_query(
             [
                 'nonce' => $nonce,
                 'return_sso_url' => DOKU_URL . 'doku.php',
-            ]
+            ], '', '&'
         ));
         $request = [
             'sso' => $payload,
@@ -87,7 +88,9 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
 
         $this->setTokenCookie($nonce);
 
-        send_redirect($endpoint . '?' . http_build_query($request));
+        $url = $endpoint . '?' . http_build_query($request, '', '&');
+
+        send_redirect($url);
     }
 
     /**
