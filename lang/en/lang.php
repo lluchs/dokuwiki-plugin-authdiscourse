@@ -1,8 +1,6 @@
 <?php
 /**
  * English language file for authdiscourse plugin
- *
- * @author Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
 // custom language strings for the plugin

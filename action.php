@@ -1,7 +1,6 @@
 <?php
 /**
  * DokuWiki Plugin authdiscourse (Action Component)
- *
  */
 
 class action_plugin_authdiscourse extends DokuWiki_Action_Plugin

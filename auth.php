@@ -1,9 +1,6 @@
 <?php
 /**
  * DokuWiki Plugin authdiscourse (Auth Component)
- *
- * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  Anna Dabrowska <dokuwiki@cosmocode.de>
  */
 
 class auth_plugin_authdiscourse extends auth_plugin_authplain
