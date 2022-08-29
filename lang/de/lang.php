@@ -1,4 +1,7 @@
 <?php
+/**
+ * German language file for authdiscourse plugin
+ */
 
-$lang['sso_failed'] = 'Ungültige SSO-Authentifizierungsdaten. Bitte versuchen Sie es erneut.';
-$lang['sso_success'] = 'Erfolgreich angemeldet';
+$lang['login_with']                 = 'Einloggen mit';
+$lang['error_login']                = 'Fehler beim Einloggen! Versuchen Sie es später noch mal, oder wenden Sie sich an den Administrator.';
