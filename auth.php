@@ -179,7 +179,7 @@ class auth_plugin_authdiscourse extends auth_plugin_authplain
 
         $comp = hash_hmac('sha256', $sso, $this->getConf('sso_secret'));
 
-        return $comp === $sig && $query['nonce'] === $_COOKIE[self::TOKEN_COOKIE];
+        return hash_equals($comp, $sig) && hash_equals($_COOKIE[self::TOKEN_COOKIE], $query['nonce']);
     }
 
     /**
