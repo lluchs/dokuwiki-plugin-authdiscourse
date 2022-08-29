@@ -76,7 +76,7 @@ class action_plugin_authdiscourse extends DokuWiki_Action_Plugin
         $endpoint = rtrim($this->getConf('sso_url'), '/');
         if (!preg_match('!/session/sso_provider$!', $endpoint)) $endpoint .= '/session/sso_provider';
         $secret = $this->getConf('sso_secret');
-        $nonce = md5(random_bytes(18));
+        $nonce = base64_encode(random_bytes(18));
 
         $payload = base64_encode(http_build_query(
             [
